@@ -3,7 +3,6 @@ package com.giraone.timesched.scheduler;
 import com.giraone.timesched.scheduler.config.ApplicationProperties;
 import com.giraone.timesched.scheduler.service.JobFulfillService;
 import org.jobrunr.scheduling.JobScheduler;
-import org.jobrunr.scheduling.cron.Cron;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -48,7 +47,7 @@ public class SchedulerApplication {
 
         // Start once
         jobScheduler.schedule(LocalDateTime.now().plusSeconds(20), jobFulfillService::doNonOverlappingJob1);
-        jobScheduler.scheduleRecurrently("nonOverlappingJob", "*/20 * * * * *", jobFulfillService::doNonOverlappingJob2);
+        jobScheduler.scheduleRecurrently("nonOverlappingJob", "* * * * *", jobFulfillService::doNonOverlappingJob2);
     }
 
     private static void logApplicationStartup(Environment env) {

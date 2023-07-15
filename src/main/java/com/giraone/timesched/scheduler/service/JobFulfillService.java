@@ -24,6 +24,7 @@ public class JobFulfillService {
     private static final Logger LOGGER = LoggerFactory.getLogger(JobFulfillService.class);
     private static final Logger DASHBOARD_LOGGER = new JobRunrDashboardLogger(LOGGER);
 
+    private static final int INTERVAL_SECONDS = 60; // every minute
     private static final AtomicInteger COUNTER1 = new AtomicInteger();
     private static final AtomicInteger COUNTER2 = new AtomicInteger();
     private static final Random RANDOM = new Random();
@@ -48,29 +49,32 @@ public class JobFulfillService {
         }
     }
 
-    @Job(name = "Recurring job (every 20 seconds) without overlap (1)")
+    @Job(name = "Non-overlapping job (every minute)")
     public void doNonOverlappingJob1() {
         try {
             int counter = COUNTER1.incrementAndGet();
             long s = System.nanoTime();
-            DASHBOARD_LOGGER.info("Starting doNonOverlappingJob1 #{}...", counter);
-            Thread.sleep(10 + RANDOM.nextInt(20));
+            int timeToSleep = (INTERVAL_SECONDS/2) + RANDOM.nextInt(INTERVAL_SECONDS);
+            DASHBOARD_LOGGER.info("Starting doNonOverlappingJob1 #{}, sleep={}", counter, timeToSleep);
+            Thread.sleep(timeToSleep);
             DASHBOARD_LOGGER.info("Finished doNonOverlappingJob1 #{}!", counter);
             long e =  System.nanoTime();
             long delta = e - s;
-            long next = (20 * 1_000_000_000L) - delta;
+            long next = (INTERVAL_SECONDS * 1_000_000_000L) - delta;
             jobScheduler.schedule(LocalDateTime.now().plusNanos(next), () -> doNonOverlappingJob1());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
 
-    @Job(name = "Recurring job (every  20 seconds) without overlap (2)")
+    @Recurring(id = "recurring-job", cron = "* * * * *")
+    @Job(name = "Recurring job (every minute)")
     public void doNonOverlappingJob2() {
         try {
             int counter = COUNTER2.incrementAndGet();
-            DASHBOARD_LOGGER.info("Starting doNonOverlappingJob2 #{}...", counter);
-            Thread.sleep(10 + RANDOM.nextInt(20));
+            int timeToSleep = (INTERVAL_SECONDS/2) + RANDOM.nextInt(INTERVAL_SECONDS);
+            DASHBOARD_LOGGER.info("Starting doNonOverlappingJob2 #{}, sleep={}", counter, timeToSleep);
+            Thread.sleep(timeToSleep);
             DASHBOARD_LOGGER.info("Finished doNonOverlappingJob2 #{}!", counter);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -78,6 +82,7 @@ public class JobFulfillService {
     }
 
     //------------------------------------------------------------------------------------------------------------------
+    // Samples from original test project
 
     public void doSimpleJob(String anArgument) {
         DASHBOARD_LOGGER.info("Doing some work: anArgument={}", anArgument);

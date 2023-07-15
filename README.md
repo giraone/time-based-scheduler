@@ -8,4 +8,4 @@
 ## Test scenario
 
 - [x] Call [WorldTimeApi](http://worldtimeapi.org/api/timezone/Europe/Berlin) every minute.
-- [ ] Call `Thread.sleep(10 + Random.nextInt(20))` every 20 seconds. How does JobRunr behave, when a jobs takes longer?
+- [ ] Call `Thread.sleep(30 + Random.nextInt(60))` every minute. How does JobRunr behave, when a jobs takes longer?
