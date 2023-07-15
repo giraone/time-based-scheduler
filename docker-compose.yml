@@ -1,0 +1,35 @@
+version: "3.5"
+services:
+
+  postgres:
+    image: postgres:14.5
+    hostname: postgres
+    container_name: postgres
+    volumes:
+      - ${CONTAINER_DATA:-./data}/postgres:/var/lib/postgresql/data
+    networks:
+      - timesched
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=jobrunr
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - PGDATA=/tmp
+
+  pgadmin4:
+    image: dpage/pgadmin4:6.18
+    hostname: pgadmin4
+    container_name: pgadmin4
+    volumes:
+      - ${CONTAINER_DATA:-./data}/pgadmin4:/var/lib/pgadmin
+    networks:
+      - timesched
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@giraone.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - 8888:80
+
+networks:
+  timesched:
