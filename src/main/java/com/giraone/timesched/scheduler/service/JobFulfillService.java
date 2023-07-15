@@ -4,12 +4,16 @@ import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.context.JobContext;
 import org.jobrunr.jobs.context.JobDashboardProgressBar;
 import org.jobrunr.jobs.context.JobRunrDashboardLogger;
+import org.jobrunr.scheduling.JobScheduler;
 import org.jobrunr.spring.annotations.Recurring;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A Spring service doing some scheduled jobs.
@@ -17,17 +21,23 @@ import java.util.Map;
 @Service
 public class JobFulfillService {
 
-    private static final Logger LOGGER =LoggerFactory.getLogger(JobFulfillService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(JobFulfillService.class);
     private static final Logger DASHBOARD_LOGGER = new JobRunrDashboardLogger(LOGGER);
 
-    private final WorldTimeApiWebClient worldTimeApiWebClient;
+    private static final AtomicInteger COUNTER1 = new AtomicInteger();
+    private static final AtomicInteger COUNTER2 = new AtomicInteger();
+    private static final Random RANDOM = new Random();
 
-    public JobFulfillService(WorldTimeApiWebClient worldTimeApiWebClient) {
+    private final WorldTimeApiWebClient worldTimeApiWebClient;
+    private final JobScheduler jobScheduler;
+
+    public JobFulfillService(WorldTimeApiWebClient worldTimeApiWebClient, JobScheduler jobScheduler) {
         this.worldTimeApiWebClient = worldTimeApiWebClient;
+        this.jobScheduler = jobScheduler;
     }
 
     @Recurring(id = "fetch-worldtime-job", cron = "* * * * *")
-    @Job(name = "Recurring job (every minute) to fetch time from worldtimeapi.org")
+    @Job(name = "Recurring job (every minute) to fetch time from worldtimeapi.org", retries = 1)
     public void doFetchWorldTimeJob() {
         DASHBOARD_LOGGER.info("Fetching time ...");
         Map<String, Object> map = worldTimeApiWebClient.getWorldTime();
@@ -35,6 +45,35 @@ public class JobFulfillService {
             DASHBOARD_LOGGER.info("datetime = {}, unixtime = {}", map.get("datetime"), map.get("unixtime"));
         } else {
             DASHBOARD_LOGGER.error("No time fetched!");
+        }
+    }
+
+    @Job(name = "Recurring job (every 20 seconds) without overlap (1)")
+    public void doNonOverlappingJob1() {
+        try {
+            int counter = COUNTER1.incrementAndGet();
+            long s = System.nanoTime();
+            DASHBOARD_LOGGER.info("Starting doNonOverlappingJob1 #{}...", counter);
+            Thread.sleep(10 + RANDOM.nextInt(20));
+            DASHBOARD_LOGGER.info("Finished doNonOverlappingJob1 #{}!", counter);
+            long e =  System.nanoTime();
+            long delta = e - s;
+            long next = (20 * 1_000_000_000L) - delta;
+            jobScheduler.schedule(LocalDateTime.now().plusNanos(next), () -> doNonOverlappingJob1());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    @Job(name = "Recurring job (every  20 seconds) without overlap (2)")
+    public void doNonOverlappingJob2() {
+        try {
+            int counter = COUNTER2.incrementAndGet();
+            DASHBOARD_LOGGER.info("Starting doNonOverlappingJob2 #{}...", counter);
+            Thread.sleep(10 + RANDOM.nextInt(20));
+            DASHBOARD_LOGGER.info("Finished doNonOverlappingJob2 #{}!", counter);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 

@@ -1,6 +1,9 @@
 package com.giraone.timesched.scheduler;
 
 import com.giraone.timesched.scheduler.config.ApplicationProperties;
+import com.giraone.timesched.scheduler.service.JobFulfillService;
+import org.jobrunr.scheduling.JobScheduler;
+import org.jobrunr.scheduling.cron.Cron;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -13,6 +16,7 @@ import org.springframework.util.StringUtils;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
+import java.time.LocalDateTime;
 
 @SpringBootApplication
 public class SchedulerApplication {
@@ -20,9 +24,13 @@ public class SchedulerApplication {
     private final static Logger LOGGER = LoggerFactory.getLogger(SchedulerApplication.class);
 
     private final ApplicationProperties applicationProperties;
+    private final JobScheduler jobScheduler;
+    private final JobFulfillService jobFulfillService;
 
-    public SchedulerApplication(ApplicationProperties applicationProperties) {
+    public SchedulerApplication(ApplicationProperties applicationProperties, JobScheduler jobScheduler, JobFulfillService jobFulfillService) {
         this.applicationProperties = applicationProperties;
+        this.jobScheduler = jobScheduler;
+        this.jobFulfillService = jobFulfillService;
     }
 
     public static void main(String[] args) {
@@ -37,6 +45,10 @@ public class SchedulerApplication {
         if (applicationProperties.isShowConfigOnStartup()) {
             LOGGER.info("{}", applicationProperties);
         }
+
+        // Start once
+        jobScheduler.schedule(LocalDateTime.now().plusSeconds(20), jobFulfillService::doNonOverlappingJob1);
+        jobScheduler.scheduleRecurrently("nonOverlappingJob", "*/20 * * * * *", jobFulfillService::doNonOverlappingJob2);
     }
 
     private static void logApplicationStartup(Environment env) {
